@@ -4,12 +4,13 @@ ADDONNAME=node_exporter
 ADDON_DIR="/usr/local/addons/${ADDONNAME}"
 TEXTFILE_DIR="${ADDON_DIR}/textfile"
 PID_FILE="/var/run/${ADDONNAME}.pid"
-COLLECTOR_PID_FILE="${ADDON_DIR}/collector.pid"
+COLLECTOR_PID_FILE="/var/run/${ADDONNAME}-collector.pid"
 
 case "$1" in
   ""|init)
-    # init is a no-op; the installer calls start explicitly
-    exit 0
+    # init starts the service; OpenCCU calls this on every boot
+    "$0" start
+    exit $?
     ;;
 
   start)

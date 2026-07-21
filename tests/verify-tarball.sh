@@ -5,7 +5,10 @@ TARBALL=$(find dist -maxdepth 1 -name 'openccu-prometheus-node-exporter-*.tar.gz
 
 echo "Verifying ${TARBALL}..."
 
-tar -tzf "${TARBALL}" | grep -v '/$' | sort > /tmp/tarball-contents.txt
+WORKDIR=$(mktemp -d)
+trap 'rm -rf "${WORKDIR}"' EXIT
+
+tar -tzf "${TARBALL}" | grep -v '/$' | sort > "${WORKDIR}/tarball-contents.txt"
 
 printf '%s\n' \
   "update_script" \
@@ -13,11 +16,11 @@ printf '%s\n' \
   "addon/VERSION" \
   "addon/bin/node_exporter" \
   "addon/bin/collect-hm-metrics.tcl" \
-  | sort > /tmp/expected-contents.txt
+  | sort > "${WORKDIR}/expected-contents.txt"
 
-if ! diff -q /tmp/expected-contents.txt /tmp/tarball-contents.txt >/dev/null 2>&1; then
+if ! diff -q "${WORKDIR}/expected-contents.txt" "${WORKDIR}/tarball-contents.txt" >/dev/null 2>&1; then
   echo "Tarball contents do not match expected manifest:"
-  diff /tmp/expected-contents.txt /tmp/tarball-contents.txt || true
+  diff "${WORKDIR}/expected-contents.txt" "${WORKDIR}/tarball-contents.txt" || true
   exit 1
 fi
 

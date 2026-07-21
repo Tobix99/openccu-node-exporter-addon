@@ -15,7 +15,7 @@ x86_64 OpenCCU only (e.g. the official OVA VM image). Other architectures are no
 
 ## Installation
 
-1. Download `openccu-prometheus-node-exporter-<version>.tar.gz` from the [latest release](https://github.com/<user>/openccu-prometheus-node-exporter/releases/latest).
+1. Download `openccu-prometheus-node-exporter-<version>.tar.gz` from the [latest release](https://github.com/Tobias-Heinze_dtag/openccu-prometheus-node-exporter/releases/latest).
 2. Open the OpenCCU WebUI and go to `Systemsteuerung → Zusatzsoftware`.
 3. Upload the tarball and install it.
 4. The addon starts automatically. Prometheus can now scrape `http://<openccu>:9100/metrics`.
@@ -41,7 +41,7 @@ automatically merged into the `/metrics` output alongside standard system metric
 
 ## Development
 
-Requirements: `make`, `curl`, `tar`, `shellcheck`.
+Requirements: `make`, `curl`, `tar`, `sha256sum` (coreutils), `shellcheck`.
 
 ```bash
 make build   # creates dist/openccu-prometheus-node-exporter-*.tar.gz

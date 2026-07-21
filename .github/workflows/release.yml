@@ -23,6 +23,17 @@ jobs:
       - name: Verify tarball
         run: make verify
 
+      - name: Check version matches pinned node_exporter
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          set -e
+          PINNED=$(cat .node_exporter_version)
+          if [ "${INPUT_VERSION}" != "${PINNED}" ]; then
+            echo "Input version ${INPUT_VERSION} does not match pinned node_exporter version ${PINNED}" >&2
+            exit 1
+          fi
+
       - name: Create GitHub release
         env:
           VERSION: ${{ inputs.version }}

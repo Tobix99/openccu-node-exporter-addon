@@ -18,6 +18,8 @@ proc log_error {msg} {
   catch { exec logger "node_exporter collector: ${msg}" }
 }
 
+set fd ""
+
 while {1} {
   if {[catch {
     set fd [open ${TEMP_FILE} w]
@@ -35,7 +37,9 @@ while {1} {
       WriteLine(_count);
     }]
     set svc_count [string trim $result(STDOUT)]
-    if {$svc_count eq ""} { set svc_count 0 }
+    if {$svc_count eq "" || ![string is integer -strict $svc_count]} {
+      error "invalid service message count: '${svc_count}'"
+    }
     write_metric $fd hm_service_messages $svc_count "Active Homematic service messages" gauge
 
     close $fd
