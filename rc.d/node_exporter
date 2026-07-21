@@ -1,0 +1,81 @@
+#!/bin/sh
+
+ADDONNAME=node_exporter
+ADDON_DIR="/usr/local/addons/${ADDONNAME}"
+TEXTFILE_DIR="${ADDON_DIR}/textfile"
+PID_FILE="/var/run/${ADDONNAME}.pid"
+COLLECTOR_PID_FILE="${ADDON_DIR}/collector.pid"
+
+case "$1" in
+  ""|init)
+    # init is a no-op; the installer calls start explicitly
+    exit 0
+    ;;
+
+  start)
+    if [ -f "${PID_FILE}" ] && kill -0 "$(cat "${PID_FILE}")" 2>/dev/null; then
+      echo "${ADDONNAME} already running"
+      exit 0
+    fi
+
+    if [ ! -x "${ADDON_DIR}/bin/node_exporter" ]; then
+      echo "${ADDONNAME} binary missing or not executable" >&2
+      exit 1
+    fi
+
+    mkdir -p "${TEXTFILE_DIR}"
+
+    nohup "${ADDON_DIR}/bin/collect-hm-metrics.tcl" >/dev/null 2>&1 &
+    echo $! > "${COLLECTOR_PID_FILE}"
+
+    nohup "${ADDON_DIR}/bin/node_exporter" \
+      --web.listen-address=:9100 \
+      --collector.textfile.directory="${TEXTFILE_DIR}" \
+      >/dev/null 2>&1 &
+    echo $! > "${PID_FILE}"
+
+    sleep 1
+    if [ -f "${PID_FILE}" ] && ! kill -0 "$(cat "${PID_FILE}")" 2>/dev/null; then
+      echo "${ADDONNAME} failed to start" >&2
+      rm -f "${PID_FILE}"
+      exit 1
+    fi
+    ;;
+
+  stop)
+    if [ -f "${COLLECTOR_PID_FILE}" ]; then
+      kill "$(cat "${COLLECTOR_PID_FILE}")" 2>/dev/null || true
+      rm -f "${COLLECTOR_PID_FILE}"
+    fi
+    if [ -f "${PID_FILE}" ]; then
+      kill "$(cat "${PID_FILE}")" 2>/dev/null || true
+      rm -f "${PID_FILE}"
+    fi
+    ;;
+
+  restart|reload)
+    "$0" stop
+    sleep 2
+    "$0" start
+    ;;
+
+  info)
+    echo "Info: <b>Prometheus Node Exporter</b>"
+    echo "Version: $(cat "${ADDON_DIR}/VERSION" 2>/dev/null || echo 'unknown')"
+    echo "Name: node_exporter"
+    echo "Operations: uninstall restart"
+    ;;
+
+  uninstall)
+    "$0" stop
+    rm -rf "${ADDON_DIR}"
+    rm -f "/usr/local/etc/config/rc.d/${ADDONNAME}"
+    ;;
+
+  *)
+    echo "Usage: $0 {start|stop|restart|info|uninstall}" >&2
+    exit 1
+    ;;
+esac
+
+exit 0
