@@ -14,6 +14,13 @@ if [ "${ARCH}" != "x86_64" ]; then
   exit 1
 fi
 
+# Stop any running instance before removing the addon directory so the
+# rc.d script can still read the collector PID file located inside it.
+if [ -x "${RCD_DIR}/${ADDON_NAME}" ]; then
+  "${RCD_DIR}/${ADDON_NAME}" stop 2>/dev/null || true
+  sleep 1
+fi
+
 rm -rf "${ADDON_DIR}"
 mkdir -p "${ADDON_DIR}/bin"
 chmod -R 755 "${ADDON_DIR}"
@@ -28,8 +35,6 @@ chmod +x "${ADDON_DIR}/bin/"*
 chmod +x "${RCD_DIR}/${ADDON_NAME}"
 
 if [ -x "${RCD_DIR}/${ADDON_NAME}" ]; then
-  "${RCD_DIR}/${ADDON_NAME}" stop 2>/dev/null || true
-  sleep 1
   "${RCD_DIR}/${ADDON_NAME}" start
 fi
 
