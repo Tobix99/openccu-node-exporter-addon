@@ -1,6 +1,9 @@
 name: Release
 
 on:
+  push:
+    tags:
+      - 'v*'
   workflow_dispatch:
     inputs:
       version:
@@ -20,23 +23,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Determine release version
+        id: version
+        run: |
+          if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
+            echo "version=${{ inputs.version }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Verify tarball
         run: make verify
 
-      - name: Check version matches pinned node_exporter
-        env:
-          INPUT_VERSION: ${{ inputs.version }}
-        run: |
-          set -e
-          PINNED=$(cat .node_exporter_version)
-          if [ "${INPUT_VERSION}" != "${PINNED}" ]; then
-            echo "Input version ${INPUT_VERSION} does not match pinned node_exporter version ${PINNED}" >&2
-            exit 1
-          fi
-
       - name: Create GitHub release
         env:
-          VERSION: ${{ inputs.version }}
+          VERSION: ${{ steps.version.outputs.version }}
         run: |
           gh release create "v${VERSION}" \
             dist/openccu-prometheus-node-exporter-*.tar.gz \
