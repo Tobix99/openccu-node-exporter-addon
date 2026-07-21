@@ -1,0 +1,30 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install shellcheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+
+      - name: Lint shell scripts
+        run: shellcheck update_script rc.d/node_exporter
+
+      - name: Verify tarball
+        run: make verify
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: addon-tarball
+          path: dist/openccu-prometheus-node-exporter-*.tar.gz
