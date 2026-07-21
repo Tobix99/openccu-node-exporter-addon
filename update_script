@@ -1,0 +1,36 @@
+#!/bin/sh
+set -e
+
+ADDON_NAME=node_exporter
+CONFIG_DIR=/usr/local/etc/config
+ADDON_DIR="/usr/local/addons/${ADDON_NAME}"
+RCD_DIR="${CONFIG_DIR}/rc.d"
+
+mount /usr/local 2>/dev/null || true
+
+ARCH=$(uname -m)
+if [ "${ARCH}" != "x86_64" ]; then
+  echo "Unsupported architecture: ${ARCH}. This addon currently only supports x86_64."
+  exit 1
+fi
+
+rm -rf "${ADDON_DIR}"
+mkdir -p "${ADDON_DIR}/bin"
+chmod -R 755 "${ADDON_DIR}"
+
+mkdir -p "${RCD_DIR}"
+chmod 755 "${RCD_DIR}"
+
+cp -af addon/* "${ADDON_DIR}/"
+cp -af rc.d/* "${RCD_DIR}/"
+
+chmod +x "${ADDON_DIR}/bin/"*
+chmod +x "${RCD_DIR}/${ADDON_NAME}"
+
+if [ -x "${RCD_DIR}/${ADDON_NAME}" ]; then
+  "${RCD_DIR}/${ADDON_NAME}" stop 2>/dev/null || true
+  sleep 1
+  "${RCD_DIR}/${ADDON_NAME}" start
+fi
+
+sync
