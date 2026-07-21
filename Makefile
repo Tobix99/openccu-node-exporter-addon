@@ -14,7 +14,7 @@ all: build
 $(BUILD_DIR)/node_exporter-$(NODE_EXPORTER_VERSION).linux-$(ARCH).tar.gz:
 	@mkdir -p $(BUILD_DIR)
 	curl -fsSL -o $@ https://github.com/prometheus/node_exporter/releases/download/v$(NODE_EXPORTER_VERSION)/node_exporter-$(NODE_EXPORTER_VERSION).linux-$(ARCH).tar.gz
-	sha256sum -c .node_exporter_checksums
+	cd $(BUILD_DIR) && sha256sum -c ../.node_exporter_checksums
 
 $(BUILD_DIR)/node_exporter: $(BUILD_DIR)/node_exporter-$(NODE_EXPORTER_VERSION).linux-$(ARCH).tar.gz
 	tar -xzf $< -C $(BUILD_DIR) --strip-components=1 node_exporter-$(NODE_EXPORTER_VERSION).linux-$(ARCH)/node_exporter
