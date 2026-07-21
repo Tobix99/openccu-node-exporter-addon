@@ -20,15 +20,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install shellcheck
-        run: sudo apt-get update && sudo apt-get install -y shellcheck
-
       - name: Verify tarball
         run: make verify
 
       - name: Create GitHub release
+        env:
+          VERSION: ${{ inputs.version }}
         run: |
-          gh release create "v${{ inputs.version }}" \
+          gh release create "v${VERSION}" \
             dist/openccu-prometheus-node-exporter-*.tar.gz \
-            --title "v${{ inputs.version }}" \
+            --title "v${VERSION}" \
             --generate-notes
