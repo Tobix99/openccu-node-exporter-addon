@@ -1,0 +1,71 @@
+name: Bump node_exporter
+
+on:
+  schedule:
+    - cron: '0 0 * * 0'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check latest node_exporter release
+        id: check
+        run: |
+          set -e
+          LATEST=$(gh api repos/prometheus/node_exporter/releases/latest --jq '.tag_name' | sed 's/^v//')
+          CURRENT=$(cat .node_exporter_version)
+          if [ -z "${LATEST}" ] || [ "${LATEST}" = "null" ]; then
+            echo "Failed to fetch latest version"
+            exit 1
+          fi
+          echo "latest=${LATEST}" >> "$GITHUB_OUTPUT"
+          echo "current=${CURRENT}" >> "$GITHUB_OUTPUT"
+
+      - name: Download checksums
+        if: steps.check.outputs.latest != steps.check.outputs.current
+        run: |
+          set -e
+          LATEST="${{ steps.check.outputs.latest }}"
+          curl -fsSL -o sha256sums.txt \
+            "https://github.com/prometheus/node_exporter/releases/download/v${LATEST}/sha256sums.txt"
+          grep "linux-amd64.tar.gz" sha256sums.txt > .node_exporter_checksums
+          rm -f sha256sums.txt
+
+      - name: Update version file
+        if: steps.check.outputs.latest != steps.check.outputs.current
+        run: echo "${{ steps.check.outputs.latest }}" > .node_exporter_version
+
+      - name: Verify build
+        if: steps.check.outputs.latest != steps.check.outputs.current
+        run: make verify
+
+      - name: Commit version files
+        if: steps.check.outputs.latest != steps.check.outputs.current
+        run: |
+          set -e
+          LATEST="${{ steps.check.outputs.latest }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .node_exporter_version .node_exporter_checksums
+          git commit -m "chore: bump node_exporter to ${LATEST}"
+          git push origin HEAD:main
+
+      - name: Create release
+        if: steps.check.outputs.latest != steps.check.outputs.current
+        run: |
+          set -e
+          LATEST="${{ steps.check.outputs.latest }}"
+          gh release create "v${LATEST}" \
+            --title "v${LATEST}" \
+            --target main \
+            --generate-notes \
+            dist/openccu-prometheus-node-exporter-*.tar.gz
